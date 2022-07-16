@@ -1,0 +1,1 @@
+cmd_/home/ivan/Documents/Petnica/Project2022/Modules/tasksModule/tasks.mod := { echo  /home/ivan/Documents/Petnica/Project2022/Modules/tasksModule/tasks.o;  echo; } > /home/ivan/Documents/Petnica/Project2022/Modules/tasksModule/tasks.mod
