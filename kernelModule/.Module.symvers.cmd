@@ -1,1 +1,0 @@
-cmd_/home/ivan/Documents/Petnica/Project2022/Modules/tasksModule/Module.symvers := sed 's/\.ko$$/\.o/' /home/ivan/Documents/Petnica/Project2022/Modules/tasksModule/modules.order | scripts/mod/modpost -m -a  -o /home/ivan/Documents/Petnica/Project2022/Modules/tasksModule/Module.symvers -e -i Module.symvers   -T -
