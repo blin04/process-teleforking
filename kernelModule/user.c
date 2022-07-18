@@ -19,14 +19,16 @@ int main()
 	ioctl(dev, IOCTL_ALL);
 	printf("First IOCTL call...\n");
 
-	char process_name[100];
-//	int	process_pid;
+//	char process_name[100];
+	int process_pid;
 	printf("Enter PID of the process: ");
-	//scanf("%d", &process_pid);
-	scanf("%s", process_name);
+	scanf("%d", &process_pid);
 
-	//ioctl(dev, IOCTL_ONE, process_pid);
-	ioctl(dev, IOCTL_ONE, process_name);
+	printf("Okay, let's try to find process %d\n", process_pid);
+	//scanf("%s", process_name);
+
+	ioctl(dev, IOCTL_ONE, &process_pid);
+	//ioctl(dev, IOCTL_ONE, process_name);
 	printf("Second IOCTL call...\n");
 
 	close(dev);
