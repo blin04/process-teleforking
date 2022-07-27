@@ -32,7 +32,7 @@ static long int tasks_ioctl(struct file *file, unsigned int cmd, unsigned long a
 	int tasks_cnt = 0;
 	int i;
 
-	int32_t process_pid;
+	pid_t process_pid;
 //	char process_name[MAX_LENGTH];
 
 	switch(cmd) {
@@ -51,29 +51,33 @@ static long int tasks_ioctl(struct file *file, unsigned int cmd, unsigned long a
 			break;
 		case IOCTL_ONE:
 			// print data about process, using it's pid
-			if (copy_from_user(&process_pid, (int32_t *)arg, sizeof(process_pid))) {
+			if (copy_from_user(&process_pid, (pid_t *)arg, sizeof(process_pid))) {
 				printk(KERN_ALERT "TasksModule: Error copying data from user!\n");
 				return -1;
 			}
 			else {
 				printk(KERN_INFO "TasksModule: Sucessfuly copied process name from the user\n");
 				printk(KERN_INFO "TasksModule: Process PID is %d", process_pid);
-				
+		
+				/*	Finding process using it's PID */	
+
 				for_each_process(iterate_task) {
 					if (iterate_task->pid == process_pid) {
-//					if (!strcmp(iterate_task->comm, process_name)) {
 						printk(KERN_INFO "TasksModule: Found the process, the name is %s\n", iterate_task->comm);
 						printk(KERN_INFO "TasksModule: PID is %d\n", iterate_task->pid);
 						return 0;
 					}
-					else {
-	//					printk(KERN_INFO "TasksModule: ")
-					}
 				}
-				printk(KERN_INFO "TasksModule: Process isn't running currently\n");
-			}
+				printk(KERN_INFO "TasksModule: Process isn't running currently\n"); 
 
-			break;
+				/* Finding process using it's PID by using 
+				 * built-in kernel function - this method isn't 
+				 * working as of now
+				iterate_task = find_task_by_pid_ns(process_pid);	
+				printk(KERN_INFO "TasksModule: Tasks struct is obtained. Name of the process is %s", iterate_task->comm); */
+
+				return 0;
+			} 
 		default:
 			return -1;
 	}
