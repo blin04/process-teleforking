@@ -3,8 +3,9 @@
 #include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/sched.h>
-#include <asm/uaccess.h>
 #include <linux/highmem.h> 
+#include <linux/signal_types.h> 
+#include <linux/signal.h> 
 #include "commands.h"
 
 #define MAJOR_NUM	100
@@ -27,19 +28,25 @@ static int tasks_close(struct inode *device_file, struct file *instance) {
 
 static long int tasks_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 {
+	// defininf variables used in switch cases
 	struct task_struct* tasks[MAX_TASKS];
-	struct task_struct* iterate_task;
-	int tasks_cnt = 0;
-	int i;
-
+	struct task_struct* task;
+	struct kernel_siginfo info;
 	pid_t process_pid;
-//	char process_name[MAX_LENGTH];
+	int tasks_cnt = 0;
+	int i;   
+	int ret;
 
 	switch(cmd) {
 		case IOCTL_ALL:
+			/* 
+			 * prints data about
+			 * all running processes
+			 * (something like 'ps aux')
+			 */
 
-			for_each_process(iterate_task) {
-				tasks[tasks_cnt++] = iterate_task;
+			for_each_process(task) {
+				tasks[tasks_cnt++] = task;
 			}
 
 			printk(KERN_INFO "TasksModule: Stored data about following processes: \n");
@@ -49,32 +56,41 @@ static long int tasks_ioctl(struct file *file, unsigned int cmd, unsigned long a
 			}
 
 			break;
-		case IOCTL_ONE:
-			// print data about process, using it's pid
+		case IOCTL_TERM:
+			/* 
+			 * terminates the process
+			 * with the given PID
+			 */
+
 			if (copy_from_user(&process_pid, (pid_t *)arg, sizeof(process_pid))) {
 				printk(KERN_ALERT "TasksModule: Error copying data from user!\n");
 				return -1;
 			}
 			else {
-				printk(KERN_INFO "TasksModule: Sucessfuly copied process name from the user\n");
+				printk(KERN_INFO "TasksModule: Sucessfuly copied process PID from the user\n");
 				printk(KERN_INFO "TasksModule: Process PID is %d", process_pid);
 		
-				/*	Finding process using it's PID */	
+				/*	Finding the process... */	
+				for_each_process(task) {
+					if (task->pid == process_pid) {
+						printk(KERN_INFO "TasksModule: Found the process, the name is %s\n", task->comm);
 
-				for_each_process(iterate_task) {
-					if (iterate_task->pid == process_pid) {
-						printk(KERN_INFO "TasksModule: Found the process, the name is %s\n", iterate_task->comm);
-						printk(KERN_INFO "TasksModule: PID is %d\n", iterate_task->pid);
+						// now we need to terminate the process
+						
+						memset(&info, 0, sizeof(struct kernel_siginfo));
+						info.si_signo = SIGTERM;
+
+						// send info to terminate
+						ret = send_sig_info(SIGTERM, &info, task);
+						if (ret < 0) {
+							printk(KERN_ALERT "TasksModule: error sending signal\n");
+							return ret;
+						}
+						printk(KERN_INFO "TasksModule: killed process\n");
 						return 0;
 					}
 				}
 				printk(KERN_INFO "TasksModule: Process isn't running currently\n"); 
-
-				/* Finding process using it's PID by using 
-				 * built-in kernel function - this method isn't 
-				 * working as of now
-				iterate_task = find_task_by_pid_ns(process_pid);	
-				printk(KERN_INFO "TasksModule: Tasks struct is obtained. Name of the process is %s", iterate_task->comm); */
 
 				return 0;
 			} 
