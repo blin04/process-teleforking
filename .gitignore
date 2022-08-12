@@ -1,11 +1,13 @@
 # ignoring files that are made when compiling kernel module
 *.o
+*.o.d
 *.ko
 *.mod
 *.mod.c
 *.cmd
 *.order
 *.symvers
+
 
 # ignoring test folder, which I use for experimenting
 _testFolder/

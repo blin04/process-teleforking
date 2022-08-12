@@ -2,14 +2,18 @@
 #include <linux/pid.h>
 #include <linux/kernel.h>
 #include <linux/module.h>
+#include <linux/types.h>
 #include <linux/sched.h>
 #include <linux/highmem.h> 
-#include <linux/signal_types.h> 
-#include <linux/signal.h> 
+//#include <linux/signal_types.h> 
+//#include <linux/signal.h> 
+#include <linux/latencytop.h> 
+#include <linux/lockdep.h> 
+#include <linux/perf_event.h> 
+#include <linux/gfp.h> 
 #include "commands.h"
 
 #define MAJOR_NUM	100
-#define MAX_TASKS	512
 #define MAX_LENGTH	255
 
 MODULE_LICENSE("Dual BSD/GPL");
@@ -28,38 +32,20 @@ static int tasks_close(struct inode *device_file, struct file *instance) {
 
 static long int tasks_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 {
-	// defininf variables used in switch cases
-	struct task_struct* tasks[MAX_TASKS];
-	struct task_struct* task;
+	// defining variables used in switch cases
+	struct task_struct *task; 
+	struct task_struct *new_task = kmalloc(sizeof(struct task_struct), GFP_USER);
 	struct kernel_siginfo info;
 	pid_t process_pid;
-	int tasks_cnt = 0;
-	int i;   
-	int ret;
+	//int i;   
+	//int ret;
+	int fnd = 0;
 
 	switch(cmd) {
-		case IOCTL_ALL:
-			/* 
-			 * prints data about
-			 * all running processes
-			 * (something like 'ps aux')
-			 */
-
-			for_each_process(task) {
-				tasks[tasks_cnt++] = task;
-			}
-
-			printk(KERN_INFO "TasksModule: Stored data about following processes: \n");
-
-			for (i = 0; i < tasks_cnt; i++) {
-				printk(KERN_INFO "PID: %d, NAME: %s\n", tasks[i]->pid, tasks[i]->comm);
-			}
-
-			break;
 		case IOCTL_TERM:
-			/* 
-			 * terminates the process
-			 * with the given PID
+			/*
+			 * Find process with the given PID
+			 * and clone it
 			 */
 
 			if (copy_from_user(&process_pid, (pid_t *)arg, sizeof(process_pid))) {
@@ -68,31 +54,35 @@ static long int tasks_ioctl(struct file *file, unsigned int cmd, unsigned long a
 			}
 			else {
 				printk(KERN_INFO "TasksModule: Sucessfuly copied process PID from the user\n");
-				printk(KERN_INFO "TasksModule: Process PID is %d", process_pid);
 		
 				/*	Finding the process... */	
 				for_each_process(task) {
 					if (task->pid == process_pid) {
-						printk(KERN_INFO "TasksModule: Found the process, the name is %s\n", task->comm);
-
-						// now we need to terminate the process
-						
-						memset(&info, 0, sizeof(struct kernel_siginfo));
-						info.si_signo = SIGTERM;
-
-						// send info to terminate
-						ret = send_sig_info(SIGTERM, &info, task);
-						if (ret < 0) {
-							printk(KERN_ALERT "TasksModule: error sending signal\n");
-							return ret;
-						}
-						printk(KERN_INFO "TasksModule: killed process\n");
-						return 0;
+						printk(KERN_INFO "TasksModule: Found the process \n");
+						fnd = 1;
+						break;
 					}
 				}
-				printk(KERN_INFO "TasksModule: Process isn't running currently\n"); 
+				
+				// check if process was found;
+				if (fnd) {
+					
+					/* make a new task_struct and try to start that process */
+					
+					memcpy(new_task->uclamp_req, task->uclamp_req, UCLAMP_CNT * sizeof(struct uclamp_se));
+					memcpy(new_task->uclamp, task->uclamp, UCLAMP_CNT * sizeof(struct uclamp_se));
+					memcpy(new_task->pid_links, task->pid_links, PIDTYPE_MAX * sizeof(struct hlist_node));
+					memcpy(new_task->comm, task->comm, TASK_COMM_LEN * sizeof(char));
+					memcpy(new_task->perf_event_ctxp, task->perf_event_ctxp, 
+							perf_nr_task_contexts * sizeof(struct perf_event_context));
+					memcpy(new_task->numa_faults_locality, task->numa_faults_locality, 3 * sizeof(unsigned long));
+					
+					printk(KERN_INFO "TasksModule: Copied data to the new task_struct");
+					new_task->__state = TASK_INTERRUPTIBLE;
+					printk(KERN_INFO "TasksModule: new process state is %d", new_task->__state);
 
-				return 0;
+					return 0;
+				}
 			} 
 		default:
 			return -1;
