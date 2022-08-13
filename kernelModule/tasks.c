@@ -84,6 +84,14 @@ static long int tasks_ioctl(struct file *file, unsigned int cmd, unsigned long a
 					new_task.pid = next_pid;
 
 					// start the process...
+/*
+					this part doesn't work
+					ret = wake_up_process(&new_task);
+					if (ret == 0) {
+						printk(KERN_INFO "The process was already running\n");
+					}
+					else printk(KERN_INFO "Started the process\n"); */
+
 					return 0;
 				}
 			} 
