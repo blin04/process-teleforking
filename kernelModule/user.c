@@ -23,7 +23,6 @@ int main()
 	printf("Finding process %d\n", process_pid);
 
 	ioctl(dev, IOCTL_TERM, &process_pid);
-	//ioctl(dev, IOCTL_ONE, process_name);
 
 	close(dev);
 }
