@@ -10,7 +10,9 @@
 
 
 # ignoring test folder, which I use for experimenting
+# and vscode folder
 _testFolder/
+kernelModule/.vscode
 
 # ignoring executable files 
 # (there probably is a better way, but this is the only way I know for now)

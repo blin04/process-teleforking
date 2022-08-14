@@ -7,7 +7,7 @@
 #include <linux/types.h>
 #include <linux/sched.h>
 #include <linux/perf_event.h> 
-#include <linux/gfp.h> 
+#include <linux/delay.h> 
 #include "commands.h"
 
 #define MAJOR_NUM	100
@@ -28,12 +28,10 @@ static int tasks_close(struct inode *device_file, struct file *instance) {
 static long int tasks_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 {
 	// defining variables used in switch cases
-	//	struct rq *run_queue = this_rq();
+	// struct rq *run_queue = (struct rq *)this_rq();
 	struct task_struct *task; 
-	struct task_struct new_task;
 	struct kernel_siginfo info;
 	pid_t process_pid;
-	pid_t next_pid;
 	int ret;
 	int fnd = 0;
 
@@ -50,12 +48,6 @@ static long int tasks_ioctl(struct file *file, unsigned int cmd, unsigned long a
 			}
 			else {
 				printk(KERN_INFO "TasksModule: Sucessfuly copied process PID from the user\n");
-
-				/* Find next PID (this should be made into a separate function) */
-				for_each_process(task) {
-					next_pid = task->pid;
-				}
-				++next_pid;
 		
 				/*	Finding the process... */	
 				for_each_process(task) {
@@ -65,25 +57,41 @@ static long int tasks_ioctl(struct file *file, unsigned int cmd, unsigned long a
 						break;
 					}
 				}
-				printk(KERN_INFO "TasksModule: next PID is %d\n", next_pid);
 				
 				// check if process was found;
 				if (fnd) {
-					/* make a new task_struct and try to start that process */
-					new_task = *task;
-					memcpy(new_task.uclamp_req, task->uclamp_req, UCLAMP_CNT * sizeof(struct uclamp_se));
-					memcpy(new_task.uclamp, task->uclamp, UCLAMP_CNT * sizeof(struct uclamp_se));
-					memcpy(new_task.pid_links, task->pid_links, PIDTYPE_MAX * sizeof(struct hlist_node));
-					memcpy(new_task.comm, task->comm, TASK_COMM_LEN * sizeof(char));
-					memcpy(new_task.perf_event_ctxp, task->perf_event_ctxp, 
-							perf_nr_task_contexts * sizeof(struct perf_event_context));
-					memcpy(new_task.numa_faults_locality, task->numa_faults_locality, 3 * sizeof(unsigned long));
-					
-					printk(KERN_INFO "TasksModule: Copied data to the new task_struct");
-					new_task.__state = TASK_INTERRUPTIBLE;
-					new_task.pid = next_pid;
+					/* stop found process and restart it later */
 
-					// start the process...
+					memset(&info, 0, sizeof(struct kernel_siginfo));
+					info.si_signo = SIGSTOP;
+					ret = send_sig_info(SIGSTOP, &info, task);
+					if (ret < 0) {
+						printk(KERN_INFO "error sending signal\n");
+					}
+					printk(KERN_INFO "TasksModule: sent stop signal\n");
+					task->__state = __TASK_STOPPED;
+					printk(KERN_INFO "TasksModule: Process state is %d\n", task->__state);
+
+					task->__state = TASK_RUNNING;
+					schedule();
+
+
+/*					ret = wake_up_process(task);
+					if (ret == 0) {
+						printk(KERN_INFO "TasksModule: process was already running\n");
+					}
+					else printk(KERN_INFO "TasksModule: process woken up\n");
+
+					msleep(8000);
+
+					memset(&info, 0, sizeof(struct kernel_siginfo));
+					info.si_signo = SIGCONT;
+					ret = send_sig_info(SIGCONT, &info, task);
+					if (ret < 0) {
+						printk(KERN_INFO "error sending signal\n");
+					}
+					printk(KERN_INFO "TasksModule: sent cont signal\n"); */
+
 					return 0;
 				}
 			} 

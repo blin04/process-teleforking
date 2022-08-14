@@ -17,6 +17,7 @@ int main()
 	int run = 1;
 	while(run) {
 		sleep(1);
+		printf("nesto\n");
 	}
 
 }
