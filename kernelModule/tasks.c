@@ -6,6 +6,7 @@
 #include <linux/module.h>
 #include <linux/types.h>
 #include <linux/sched.h>
+#include <linux/sched/task.h>
 #include <linux/perf_event.h> 
 #include <linux/delay.h> 
 #include "commands.h"
@@ -28,7 +29,7 @@ static int tasks_close(struct inode *device_file, struct file *instance) {
 static long int tasks_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 {
 	// defining variables used in switch cases
-	// struct rq *run_queue = (struct rq *)this_rq();
+	struct kernel_clone_args kargs;
 	struct task_struct *task; 
 	struct kernel_siginfo info;
 	pid_t process_pid;
@@ -62,7 +63,7 @@ static long int tasks_ioctl(struct file *file, unsigned int cmd, unsigned long a
 				if (fnd) {
 					/* stop found process and restart it later */
 
-					memset(&info, 0, sizeof(struct kernel_siginfo));
+/*					memset(&info, 0, sizeof(struct kernel_siginfo));
 					info.si_signo = SIGSTOP;
 					ret = send_sig_info(SIGSTOP, &info, task);
 					if (ret < 0) {
@@ -70,11 +71,13 @@ static long int tasks_ioctl(struct file *file, unsigned int cmd, unsigned long a
 					}
 					printk(KERN_INFO "TasksModule: sent stop signal\n");
 					task->__state = __TASK_STOPPED;
-					printk(KERN_INFO "TasksModule: Process state is %d\n", task->__state);
+					printk(KERN_INFO "TasksModule: Process state is %d\n", task->__state); */
 
-					task->__state = TASK_RUNNING;
-					schedule();
 
+					kargs.exit_signal = SIGCHLD;
+					kargs.parent_tid = &(task->pid);
+
+					kernel_clone(&kargs);
 
 /*					ret = wake_up_process(task);
 					if (ret == 0) {
