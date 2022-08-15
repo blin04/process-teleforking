@@ -6,6 +6,8 @@
 #include <linux/module.h>
 #include <linux/types.h>
 #include <linux/sched.h>
+#include <linux/slab.h>
+#include <linux/slab_def.h>
 #include <linux/perf_event.h> 
 #include <linux/gfp.h> 
 #include "commands.h"
@@ -28,7 +30,7 @@ static int tasks_close(struct inode *device_file, struct file *instance) {
 static long int tasks_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 {
 	// defining variables used in switch cases
-	//	struct rq *run_queue = this_rq();
+	struct kmem_cache *tsk_strct_cachep;
 	struct task_struct *task; 
 	struct task_struct new_task;
 	struct kernel_siginfo info;
@@ -70,27 +72,13 @@ static long int tasks_ioctl(struct file *file, unsigned int cmd, unsigned long a
 				// check if process was found;
 				if (fnd) {
 					/* make a new task_struct and try to start that process */
-					new_task = *task;
-					memcpy(new_task.uclamp_req, task->uclamp_req, UCLAMP_CNT * sizeof(struct uclamp_se));
-					memcpy(new_task.uclamp, task->uclamp, UCLAMP_CNT * sizeof(struct uclamp_se));
-					memcpy(new_task.pid_links, task->pid_links, PIDTYPE_MAX * sizeof(struct hlist_node));
-					memcpy(new_task.comm, task->comm, TASK_COMM_LEN * sizeof(char));
-					memcpy(new_task.perf_event_ctxp, task->perf_event_ctxp, 
-							perf_nr_task_contexts * sizeof(struct perf_event_context));
-					memcpy(new_task.numa_faults_locality, task->numa_faults_locality, 3 * sizeof(unsigned long));
-					
-					printk(KERN_INFO "TasksModule: Copied data to the new task_struct");
-					new_task.__state = TASK_INTERRUPTIBLE;
-					new_task.pid = next_pid;
 
-					// start the process...
-/*
-					this part doesn't work
-					ret = wake_up_process(&new_task);
-					if (ret == 0) {
-						printk(KERN_INFO "The process was already running\n");
-					}
-					else printk(KERN_INFO "Started the process\n"); */
+					tsk_strct_cachep->size = sizeof(struct task_struct);
+					tsk_strct_cachep->object_size = sizeof(struct task_struct);
+
+					kmem_cache_alloc(tsk_strct_cachep, GFP_KERNEL);	
+
+					kmem_cache_destroy(tsk_strct_cachep);
 
 					return 0;
 				}
