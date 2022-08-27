@@ -9,10 +9,13 @@
 *.symvers
 
 
-# ignoring test folder, which I use for experimenting
-# and vscode folder
+# ignorig folders
+# testFolder - used for testing stuff
+# vscode folder
+# Shared - folder used for sharing files with qemu
 _testFolder/
 kernelModule/.vscode
+Shared/
 
 # ignoring executable files 
 # (there probably is a better way, but this is the only way I know for now)
