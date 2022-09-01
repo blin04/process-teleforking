@@ -3,7 +3,6 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>
-#include <sys/types.h>
 
 #include "commands.h"
 
@@ -16,13 +15,10 @@ int main()
 	}
 	printf("Device file opened sucessfuly!\n");
 
-	int process_pid;
-	printf("Enter PID of the process: ");
-	scanf("%d", &process_pid);
-
-	printf("Finding process %d\n", process_pid);
-
-	ioctl(dev, IOCTL_TERM, &process_pid);
+	// IOCTL_CLN - argument should be PID of a process
+	// for now, the argument is an arbitrary number
+	int temp = 5;
+	ioctl(dev, IOCTL_CLN, &temp);
 
 	close(dev);
 }
