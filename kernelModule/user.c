@@ -17,8 +17,11 @@ int main()
 
 	// IOCTL_CLN - argument should be PID of a process
 	// for now, the argument is an arbitrary number
-	int temp = 5;
-	ioctl(dev, IOCTL_CLN, &temp);
+
+	int pid;
+	printf("Enter proces PID: ");
+	scanf("%d", &pid);
+	ioctl(dev, IOCTL_CLN, &pid);
 
 	close(dev);
 }

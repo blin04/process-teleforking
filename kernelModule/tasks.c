@@ -1,10 +1,14 @@
 // kako include-ovati fajl iz kernel/sched/sched.h
 
-// @ts-ignore
 #include <linux/init.h>
 #include <linux/module.h>
 #include <linux/kernel.h>
+#include <linux/sched.h>
+#include <linux/file.h>
 #include <linux/fs.h>
+#include <linux/dcache.h>
+#include <linux/slab.h>
+#include <linux/uaccess.h>
 #include "commands.h"
 
 #define MAJOR_NUM	100
@@ -23,10 +27,24 @@ static int tasks_close(struct inode *device_file, struct file *instance) {
 
 static long int tasks_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 {
+	// defining variables that are used in various switch cases
+	struct task_struct *task;
+	struct files_struct *current_files;
+	struct fdtable *files_table;
+	int i = 0;
+	pid_t process_pid;
+	char *final_path;
+	char *buff = (char *)kmalloc(GFP_KERNEL, 100*sizeof(char));
 
 	switch(cmd) {
 		case IOCTL_CLN:
-			printk("TasksModule: IOCTL works!\n");
+			if (copy_from_user(&process_pid, (pid_t *)arg, sizeof(process_pid))) {
+				printk(KERN_ALERT "TasksModule: can continue writing this code\n");
+			}
+			else {
+				printk(KERN_ALERT "TasksModule: Couldn't copy PID from the user!\n");
+			}
+
 		default:
 			return -1;
 	}
