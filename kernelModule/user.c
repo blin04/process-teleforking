@@ -19,7 +19,12 @@ int main()
 	int pid;
 	printf("Enter proces PID: ");
 	scanf("%d", &pid);
-	ioctl(dev, IOCTL_CNT, &pid);
+
+	// setup necessary task_struct in 
+	// the device driver
+	ioctl(dev, IOCTL_STP, &pid);
+
+	ioctl(dev, IOCTL_CNT);
 
 	close(dev);
 }

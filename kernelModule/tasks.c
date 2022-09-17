@@ -16,15 +16,23 @@
 
 MODULE_LICENSE("Dual BSD/GPL");
 
+/* --------- global variables ----------- */
+
+// pointer to process that is started in stopped state
+static struct task_struct *task;
+// struct of a process that should be started as a copy of the stopped one
+static struct task_struct new_task;		
+
+
 static struct task_struct *find_task(pid_t pid)
 {
-	struct task_struct *task;
-	for_each_process(task) {
-		if (task->pid == pid) {
-			return task;
+	struct task_struct *tmp_task;
+	for_each_process(tmp_task) {
+		if (tmp_task->pid == pid) {
+			return tmp_task;
 		} 
 	}
-	return task;
+	return tmp_task;
 }
 
 static int tasks_open(struct inode *device_file, struct file *instance) {
@@ -40,23 +48,20 @@ static int tasks_close(struct inode *device_file, struct file *instance) {
 static long int tasks_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 {
 	// defining variables that are used in various switch cases
-	struct task_struct *task;
-/*	struct files_struct *current_files;
-	struct fdtable *files_table;
-	struct path files_path;
-	int i = 0; */
 	pid_t process_pid;
 
 	switch(cmd) {
-		case IOCTL_CNT:
+		case IOCTL_STP:
 			if (copy_from_user(&process_pid, (pid_t *)arg, sizeof(process_pid))) {
 				printk(KERN_ALERT "TasksModule: Couldn't copy PID from the user!\n");
 				return -1;
 			}
 			printk(KERN_INFO "TasksModule: Copied PID sucessfuly, %d\n", process_pid);
 
-			// pointer to task_struct with the given PID
 			task = find_task(process_pid);
+
+			return 0;
+		case IOCTL_CNT:
 			
 			printk(KERN_INFO "TasksModule: Name - %s\n", task->comm);
 			printk(KERN_INFO "TasksModule: State - %ld\n", task->state);
@@ -67,6 +72,15 @@ static long int tasks_ioctl(struct file *file, unsigned int cmd, unsigned long a
 			printk(KERN_INFO "TasksModule: Name - %s\n", task->comm);
 			printk(KERN_INFO "TasksModule: State - %ld\n", task->state);
 			
+			return 0;
+		case IOCTL_CPY:
+			// copies task struct
+
+			// somehow copy to new_task...
+
+			return 0;
+		case IOCTL_RUN:
+			// starts the new task
 			return 0;
 		default:
 			return -1;
