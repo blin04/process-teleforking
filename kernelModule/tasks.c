@@ -7,7 +7,6 @@
 #include <linux/file.h>
 #include <linux/fs.h>
 #include <linux/pid.h>
-#include <linux/sched.h>
 #include <linux/dcache.h>
 #include <linux/slab.h>
 #include <linux/uaccess.h>
@@ -42,37 +41,31 @@ static long int tasks_ioctl(struct file *file, unsigned int cmd, unsigned long a
 {
 	// defining variables that are used in various switch cases
 	struct task_struct *task;
-	struct files_struct *current_files;
+/*	struct files_struct *current_files;
 	struct fdtable *files_table;
 	struct path files_path;
-	int i = 0;
+	int i = 0; */
 	pid_t process_pid;
 
-	char *final_path;
-	char *buff = (char *)kmalloc(GFP_KERNEL, 100*sizeof(char));
-
 	switch(cmd) {
-		case IOCTL_CLN:
+		case IOCTL_CNT:
 			if (copy_from_user(&process_pid, (pid_t *)arg, sizeof(process_pid))) {
 				printk(KERN_ALERT "TasksModule: Couldn't copy PID from the user!\n");
 				return -1;
 			}
-
 			printk(KERN_INFO "TasksModule: Copied PID sucessfuly, %d\n", process_pid);
-			printk(KERN_INFO "TasksModule: Open files are... \n");
 
-			
+			// pointer to task_struct with the given PID
 			task = find_task(process_pid);
 			
-			current_files = task->files;
-			files_table = files_fdtable(current_files);
-			while(files_table->fd[i] != NULL) {
-				files_path = files_table->fd[i]->f_path;
-				final_path = d_path(files_path.dentry, files_path.mnt, buff, 100*sizeof(char));
+			printk(KERN_INFO "TasksModule: Name - %s\n", task->comm);
+			printk(KERN_INFO "TasksModule: State - %ld\n", task->state);
 
-				printk(KERN_INFO "**** %s *****\n", final_path);
-				++i;
-			}
+			// let's try to continue this process
+			kill_proc(task->pid, SIGCONT, 1);
+			printk(KERN_INFO "TasksModule: Process should have continued\n");
+			printk(KERN_INFO "TasksModule: Name - %s\n", task->comm);
+			printk(KERN_INFO "TasksModule: State - %ld\n", task->state);
 			
 			return 0;
 		default:

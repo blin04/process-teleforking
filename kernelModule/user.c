@@ -15,13 +15,11 @@ int main()
 	}
 	printf("Device file opened sucessfuly!\n");
 
-	// IOCTL_CLN - argument should be PID of a process
-	// for now, the argument is an arbitrary number
-
+	/* continue process with this pid */
 	int pid;
 	printf("Enter proces PID: ");
 	scanf("%d", &pid);
-	ioctl(dev, IOCTL_CLN, &pid);
+	ioctl(dev, IOCTL_CNT, &pid);
 
 	close(dev);
 }
