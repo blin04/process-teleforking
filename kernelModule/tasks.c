@@ -10,6 +10,8 @@
 #include <linux/dcache.h>
 #include <linux/slab.h>
 #include <linux/uaccess.h>
+#include <linux/lockdep.h>
+#include <linux/list.h>
 #include "commands.h"
 
 #define MAJOR_NUM	100
@@ -52,6 +54,8 @@ static long int tasks_ioctl(struct file *file, unsigned int cmd, unsigned long a
 
 	switch(cmd) {
 		case IOCTL_STP:
+			// set's up the pointer to the task that has the given PID
+
 			if (copy_from_user(&process_pid, (pid_t *)arg, sizeof(process_pid))) {
 				printk(KERN_ALERT "TasksModule: Couldn't copy PID from the user!\n");
 				return -1;
@@ -76,11 +80,23 @@ static long int tasks_ioctl(struct file *file, unsigned int cmd, unsigned long a
 		case IOCTL_CPY:
 			// copies task struct
 
-			// somehow copy to new_task...
+			new_task = *task;
+			memcpy(new_task.pids, task->pids, PIDTYPE_MAX * sizeof(struct pid_link));
+			memcpy(new_task.cpu_timers, task->cpu_timers, 3 * sizeof(struct list_head));
+			memcpy(new_task.comm, task->comm, TASK_COMM_LEN * sizeof(char));
+			
+			new_task.pid = (task->pid) + 1;
+		
+			printk(KERN_INFO "TasksModule: New task PID is %d\n", new_task.pid);
 
 			return 0;
 		case IOCTL_RUN:
 			// starts the new task
+			kill_proc(new_task.pid, SIGCONT, 1);
+			printk(KERN_INFO "TasksModule: Process should have continued\n");
+			printk(KERN_INFO "TasksModule: Name - %s\n", new_task.comm);
+			printk(KERN_INFO "TasksModule: State - %ld\n", new_task.state);
+			
 			return 0;
 		default:
 			return -1;

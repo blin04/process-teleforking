@@ -15,16 +15,28 @@ int main()
 	}
 	printf("Device file opened sucessfuly!\n");
 
+	int pid = fork();
+	if (pid == 0) {
+		// starting desired process in zombie state
+		char *args[] = {NULL};
+		execv("./proces", args); 
+	}
+	printf("User program PID is %d\n", getpid());
+
 	/* continue process with this pid */
-	int pid;
+	int proc_pid;
 	printf("Enter proces PID: ");
-	scanf("%d", &pid);
+	scanf("%d", &proc_pid);
 
 	// setup necessary task_struct in 
 	// the device driver
-	ioctl(dev, IOCTL_STP, &pid);
+	ioctl(dev, IOCTL_STP, &proc_pid);
 
-	ioctl(dev, IOCTL_CNT);
+	// copy to new task 
+	ioctl(dev, IOCTL_CPY);
+
+	// start the new task
+	ioctl(dev, IOCTL_RUN);
 
 	close(dev);
 }
