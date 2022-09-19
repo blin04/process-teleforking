@@ -53,7 +53,7 @@ static long int tasks_ioctl(struct file *file, unsigned int cmd, unsigned long a
 	pid_t process_pid;
 
 	switch(cmd) {
-		case IOCTL_STP:
+		case IOCTL_SETUP:
 			// set's up the pointer to the task that has the given PID
 
 			if (copy_from_user(&process_pid, (pid_t *)arg, sizeof(process_pid))) {
@@ -65,8 +65,13 @@ static long int tasks_ioctl(struct file *file, unsigned int cmd, unsigned long a
 			task = find_task(process_pid);
 
 			return 0;
+		case IOCTL_STOP:
+			kill_proc(task->pid, SIGSTOP, 1);	
+			printk(KERN_INFO "TasksModule: Name - %s\n", task->comm);
+			printk(KERN_INFO "TasksModule: State - %ld\n", task->state);
+
+			return 0;
 		case IOCTL_CNT:
-			
 			printk(KERN_INFO "TasksModule: Name - %s\n", task->comm);
 			printk(KERN_INFO "TasksModule: State - %ld\n", task->state);
 
@@ -85,8 +90,6 @@ static long int tasks_ioctl(struct file *file, unsigned int cmd, unsigned long a
 			memcpy(new_task.cpu_timers, task->cpu_timers, 3 * sizeof(struct list_head));
 			memcpy(new_task.comm, task->comm, TASK_COMM_LEN * sizeof(char));
 			
-			new_task.pid = (task->pid) + 1;
-		
 			printk(KERN_INFO "TasksModule: New task PID is %d\n", new_task.pid);
 
 			return 0;
